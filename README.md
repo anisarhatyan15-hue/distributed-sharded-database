@@ -1,21 +1,42 @@
 Distributed Sharded Database System with Automated Failover
+This project is a Horizontally Scalable and Fault-Tolerant distributed database system simulation built from scratch using Python and SQLite. The core objective of this project is to demonstrate critical Site Reliability Engineering (SRE) principles and advanced Backend Architecture concepts—specifically, cryptographic data sharding and automated disaster recovery (Failover).
 
-Այս նախագիծը հորիզոնական ընդլայնվող (Horizontally Scalable) և վթարակայուն (Fault-Tolerant) տվյալների բազայի համակարգի սիմուլյացիա է՝ գրված **Python**-ով և **SQLite**-ով: Նախագծի նպատակն է ցուցադրել **Site Reliability Engineering (SRE)** և **Backend Architecture** հիմնական կոնցեպտները՝ տվյալների շարդավորումը (Sharding) և վթարից հետո ավտոմատ վերականգնումը (Failover):
+ System Architecture
+The infrastructure consists of three physically isolated SQLite databases managed dynamically by a centralized Query Router:
 
+database_shard_1.db — Primary Database Node 1 (Master Shard 1).
 
+database_shard_2.db — Primary Database Node 2 (Master Shard 2).
 
-Համակարգի Ճարտարապետությունը (Architecture)
+database_replica.db — Shared Backup Database (Asynchronous/Synchronous Replica).
 
-Համակարգը բաղկացած է երեք ֆիզիկապես առանձնացված SQLite տվյալների բազաներից, որոնք կառավարվում են կենտրոնական Ռուտերի (Query Router) կողմից:
+ Core Engineering Features
+1. Consistent Sharding Logic
+To ensure an even data distribution across the cluster and prevent data hotspots, the system utilizes a deterministic algorithmic approach:
 
-**`database_shard_1.db`** — Առաջին հիմնական բազան (Master Shard 1):
- **`database_shard_2.db`** — Երկրորդ հիմնական բազան (Master Shard 2):
- **`database_replica.db`** — Պահուստային համընդհանուր բազա (Asynchronous/Synchronous Replica):
+The incoming user_id is processed through a cryptographic MD5 hashing function.
 
+The resulting hexadecimal hash is converted into a base-10 integer.
 
+A modulo operation (% 2) is applied to dynamically route the request to the correct target shard.
 
-1. Consistent Sharding (Կայուն Շարդավորում):** Տվյալների հավասարաչափ բաշխումն ապահովելու համար օգտատիրոջ `user_id`-ն անցնում է կրիպտոգրաֆիկ **MD5** հեշավորման միջոցով: Հեշի արդյունքը տեղափոխվում է $16$-ական համակարգ, և `% 2` (modulo) գործողությամբ որոշվում է թիրախային շարդը:
-2. **Data Replication (Ռեպլիկացիա):** Տվյալների կորուստը բացառելու (Data Loss Prevention) նպատակով, ցանկացած `INSERT` գործողություն հիմնական շարդում հաջողվելուց հետո դուբլիկացվում է `database_replica.db`-ում:
-3. **Automated Failover (Վթարի կառավարում):** Ընթերցման (`SELECT`) ժամանակ համակարգը ստուգում է բազայի առողջությունը (Health Check): Եթե հիմնական շարդն անհասանելի է, `try...except` բլոկը որսում է սխալը, և հարցումը ավտոմատ վերաուղղորդվում է դեպի Replica բազա:
+2. High Availability Data Replication
+To achieve Data Loss Prevention (DLP), a replication layer is embedded within the architecture. Every successful INSERT or mutation query executed on a Master Shard is instantly duplicated into the global database_replica.db node, preserving state across the cluster.
+
+3. Automated Failover (Self-Healing Router)
+The Query Router implements active runtime Health Checking during read operations (SELECT). If a primary Master Shard goes offline or becomes unreachable:
+
+The active try...except block intercepts the database connection exception.
+
+The system automatically triggers a Failover Mechanism, seamlessly rerouting the read traffic to the Replica database.
+
+This ensures zero downtime and high system availability from the user's perspective.
+
+Technical Stack Breakdown
+Language: Python 3
+
+Storage Engine: SQLite3 (Isolated DB files acting as distributed nodes)
+
+Core Concepts: Systems Design, Data Integrity, Cryptographic Hashing, Fault Tolerance, SRE Automation.
 
 
